@@ -41,14 +41,14 @@ jobs:
         env:
           SOURCE_DATE_EPOCH: "315532800"
         run: uv build --project backend --wheel --out-dir backend/dist
-      - name: Refresh local wheel lock entry
-        run: uv lock --refresh-package appuesta-core --project cloudflare
       - name: Install project
-        run: uv sync --project cloudflare --locked
+        run: |
+          uv sync --project cloudflare --locked --no-install-local
+          uv pip install --python cloudflare/.venv/bin/python backend/dist/appuesta_core-0.1.0-py3-none-any.whl
       - name: Run Worker tests
         env:
           PYTHONPATH: cloudflare:backend
-        run: uv run --project cloudflare python -m unittest discover -s cloudflare/tests -v
+        run: uv run --project cloudflare --no-sync python -m unittest discover -s cloudflare/tests -v
       - name: Configure deployment
         id: deployment
         shell: bash
@@ -79,4 +79,4 @@ jobs:
         run: npx --yes wrangler@4 d1 migrations apply appuesta-db --remote --config cloudflare/wrangler.toml
       - name: Deploy Python Worker
         if: steps.deployment.outputs.ready == 'true'
-        run: uv run --project cloudflare pywrangler deploy --config cloudflare/wrangler.toml
+        run: uv run --project cloudflare --no-sync pywrangler deploy --config cloudflare/wrangler.toml

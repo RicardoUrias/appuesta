@@ -11,8 +11,8 @@ Desde la raíz del repositorio, instala el proyecto y crea los secretos locales:
 ```powershell
 $env:SOURCE_DATE_EPOCH = "315532800"
 uv build --project backend --wheel --out-dir backend/dist
-uv lock --refresh-package appuesta-core --project cloudflare
-uv sync --project cloudflare --locked
+uv sync --project cloudflare --locked --no-install-local
+uv pip install --python cloudflare/.venv/Scripts/python.exe backend/dist/appuesta_core-0.1.0-py3-none-any.whl
 Copy-Item cloudflare/.dev.vars.example cloudflare/.dev.vars
 Set-Location cloudflare
 ```
@@ -22,7 +22,7 @@ Aplica la migración local e inicia el Worker:
 
 ```powershell
 npx --yes --package=node@22 --package=wrangler@4 -- wrangler d1 migrations apply appuesta-db --local --config wrangler.toml
-npx --yes --package=node@22 --package=wrangler@4 -- cmd /c "uv run pywrangler dev --config wrangler.toml"
+npx --yes --package=node@22 --package=wrangler@4 -- cmd /c "uv run --no-sync pywrangler dev --config wrangler.toml"
 ```
 
 Abre la URL local que imprime Pywrangler. La búsqueda consulta los proveedores reales; el historial y D1 local son independientes de producción.
@@ -53,7 +53,7 @@ Desde la raíz del repositorio:
 
 ```powershell
 $env:PYTHONPATH = "cloudflare;backend"
-uv run --project cloudflare python -m unittest discover -s cloudflare/tests -v
+uv run --project cloudflare --no-sync python -m unittest discover -s cloudflare/tests -v
 Set-Location backend
 & .\.venv\Scripts\python.exe -m unittest discover -s .\tests -v
 ```
