@@ -11,7 +11,7 @@ Desde la raíz del repositorio, instala el proyecto y crea los secretos locales:
 ```powershell
 $env:SOURCE_DATE_EPOCH = "315532800"
 uv build --project backend --wheel --out-dir backend/dist
-uv lock --project cloudflare
+uv lock --refresh-package appuesta-core --project cloudflare
 uv sync --project cloudflare --locked
 Copy-Item cloudflare/.dev.vars.example cloudflare/.dev.vars
 Set-Location cloudflare

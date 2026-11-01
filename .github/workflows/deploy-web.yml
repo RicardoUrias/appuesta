@@ -42,7 +42,7 @@ jobs:
           SOURCE_DATE_EPOCH: "315532800"
         run: uv build --project backend --wheel --out-dir backend/dist
       - name: Refresh local wheel lock entry
-        run: uv lock --project cloudflare
+        run: uv lock --refresh-package appuesta-core --project cloudflare
       - name: Install project
         run: uv sync --project cloudflare --locked
       - name: Run Worker tests
