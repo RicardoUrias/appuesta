@@ -1,0 +1,80 @@
+name: Deploy APPuesta web
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "cloudflare/**"
+      - ".github/workflows/deploy-web.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_D1_DATABASE_ID: ${{ secrets.CLOUDFLARE_D1_DATABASE_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: astral-sh/setup-uv@v6
+      - name: Install backend test dependencies
+        run: python -m pip install -r backend/requirements.txt
+      - name: Run backend regression tests
+        env:
+          PYTHONPATH: backend
+        run: python -m unittest discover -s backend/tests -v
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build shared analysis wheel
+        env:
+          SOURCE_DATE_EPOCH: "315532800"
+        run: uv build --project backend --wheel --out-dir backend/dist
+      - name: Install project
+        run: uv sync --project cloudflare --locked
+      - name: Run Worker tests
+        env:
+          PYTHONPATH: cloudflare:backend
+        run: uv run --project cloudflare python -m unittest discover -s cloudflare/tests -v
+      - name: Configure deployment
+        id: deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=0
+          configured=0
+          for name in CLOUDFLARE_ACCOUNT_ID CLOUDFLARE_API_TOKEN CLOUDFLARE_D1_DATABASE_ID; do
+            if [ -z "${!name}" ]; then
+              missing=1
+            else
+              configured=1
+            fi
+          done
+          if [ "$configured" -eq 0 ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "Cloudflare deployment skipped; configure all required GitHub secrets when ready."
+            exit 0
+          fi
+          if [ "$missing" -eq 1 ]; then
+            echo "::error::Configure all Cloudflare deployment secrets before deploying."
+            exit 1
+          fi
+          python -c "import os,pathlib,uuid; p=pathlib.Path('cloudflare/wrangler.toml'); text=p.read_text(); placeholder='00000000-0000-0000-0000-000000000001'; database_id=os.environ['CLOUDFLARE_D1_DATABASE_ID']; uuid.UUID(database_id); assert placeholder in text, 'Set a valid D1 database ID'; p.write_text(text.replace(placeholder,database_id))"
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Apply D1 migrations
+        if: steps.deployment.outputs.ready == 'true'
+        run: npx --yes wrangler@4 d1 migrations apply appuesta-db --remote --config cloudflare/wrangler.toml
+      - name: Deploy Python Worker
+        if: steps.deployment.outputs.ready == 'true'
+        run: uv run --project cloudflare pywrangler deploy --config cloudflare/wrangler.toml

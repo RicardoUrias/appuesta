@@ -1,0 +1,85 @@
+metadata:
+  generated: "2026-10-31"
+  source_plan: "docs/web-mvp/plan.md"
+  target_tasks: "docs/web-mvp/plan.md"
+summary:
+  total_plan_items: 6
+  covered_plan_items: 6
+  missing_plan_items: 0
+  coverage_percentage: 100.0
+  total_tasks_generated: 18
+  orphan_tasks: 0
+phases:
+  - phase_id: "Phase-1"
+    phase_name: "Setup"
+    items:
+      - item_id: "1.1"
+        description: "Add Cloudflare Worker scaffold and data schema"
+        tasks: ["T001", "T002", "T005"]
+        notes: ""
+  - phase_id: "Phase-2"
+    phase_name: "Foundational"
+    items:
+      - item_id: "2.1"
+        description: "Implement shared analysis and provider adapters"
+        tasks: ["T003", "T004", "T005", "T006", "T007", "T009", "T010"]
+        notes: ""
+  - phase_id: "Phase-3"
+    phase_name: "Scan upcoming games"
+    items:
+      - item_id: "3.1"
+        description: "Build responsive scan dashboard"
+        tasks: ["T008", "T014", "T015"]
+        notes: ""
+  - phase_id: "Phase-4"
+    phase_name: "Review reliability"
+    items:
+      - item_id: "4.1"
+        description: "Persist, settle, and report historical hit rate"
+        tasks: ["T010", "T011", "T012", "T013"]
+        notes: ""
+  - phase_id: "Phase-5"
+    phase_name: "Secure deployment"
+    items:
+      - item_id: "5.1"
+        description: "Secure and prepare GitHub-to-Cloudflare deployment"
+        tasks: ["T016", "T017"]
+        notes: ""
+  - phase_id: "Phase-6"
+    phase_name: "Validation"
+    items:
+      - item_id: "6.1"
+        description: "Validate user journeys and analysis correctness"
+        tasks: ["T018"]
+        notes: ""
+missing_plan_items: []
+orphan_tasks: []
+upstream_trace:
+  - plan_item: "1.1"
+    source_requirements: ["REQ-001", "REQ-005", "REQ-008", "REQ-009"]
+    tasks: ["T001", "T002", "T005"]
+    full_trace: "REQ-001,REQ-005,REQ-008,REQ-009 → Phase-1.1 → T001,T002,T005"
+  - plan_item: "2.1"
+    source_requirements: ["REQ-002", "REQ-003", "REQ-006"]
+    tasks: ["T003", "T004", "T005", "T006", "T007", "T009", "T010"]
+    full_trace: "REQ-002,REQ-003,REQ-006 → Phase-2.1 → T003,T004,T005,T006,T007,T009,T010"
+  - plan_item: "3.1"
+    source_requirements: ["REQ-001", "REQ-002", "REQ-003", "REQ-004"]
+    tasks: ["T008", "T014", "T015"]
+    full_trace: "REQ-001,REQ-002,REQ-003,REQ-004 → Phase-3.1 → T008,T014,T015"
+  - plan_item: "4.1"
+    source_requirements: ["REQ-005", "REQ-006", "REQ-007"]
+    tasks: ["T010", "T011", "T012", "T013"]
+    full_trace: "REQ-005,REQ-006,REQ-007 → Phase-4.1 → T010,T011,T012,T013"
+  - plan_item: "5.1"
+    source_requirements: ["REQ-001", "REQ-008", "REQ-009"]
+    tasks: ["T016", "T017"]
+    full_trace: "REQ-001,REQ-008,REQ-009 → Phase-5.1 → T016,T017"
+  - plan_item: "6.1"
+    source_requirements: ["REQ-001", "REQ-002", "REQ-003", "REQ-004", "REQ-005", "REQ-006", "REQ-007", "REQ-008", "REQ-009"]
+    tasks: ["T018"]
+    full_trace: "REQ-001..REQ-009 → Phase-6.1 → T018"
+validation:
+  passed: true
+  errors: []
+  warnings: []

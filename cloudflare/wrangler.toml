@@ -1,0 +1,30 @@
+name = "appuesta-web"
+main = "src/entry.py"
+compatibility_date = "2026-10-30"
+compatibility_flags = ["python_workers"]
+workers_dev = false
+preview_urls = false
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+run_worker_first = ["/api/*"]
+
+[vars]
+LEAGUE_ID = "262"
+STATS_SEASON = "2024"
+ODDS_REGION = "us"
+ODDS_SPORT_KEY = "soccer_mexico_ligamx"
+MODEL_EDGE_THRESHOLD = "0.08"
+MAX_TEAM_STATS_PER_SCAN = "8"
+API_SPORTS_REQUEST_INTERVAL_SECONDS = "6.1"
+EXPERIMENTAL = "true"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "appuesta-db"
+database_id = "00000000-0000-0000-0000-000000000001"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["0 12 * * *"]

@@ -1,0 +1,112 @@
+metadata:
+  generated: "2026-10-31"
+  source_spec: "docs/web-mvp/spec.md"
+  target_plan: "docs/web-mvp/plan.md"
+summary:
+  total_requirements: 9
+  covered_requirements: 9
+  missing_requirements: 0
+  coverage_percentage: 100.0
+requirements:
+  - req_id: "REQ-001"
+    req_description: "Private responsive dashboard"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "Scan dashboard"
+      items:
+        - item_id: "3.1"
+          description: "Build responsive scan dashboard"
+        - item_id: "5.1"
+          description: "Secure Cloudflare deployment"
+  - req_id: "REQ-002"
+    req_description: "On-demand scan and explicit states"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "Scan dashboard"
+      items:
+        - item_id: "2.1"
+          description: "Implement provider adapters"
+        - item_id: "3.1"
+          description: "Build responsive scan dashboard"
+  - req_id: "REQ-003"
+    req_description: "Complete metrics for each pick"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "Scan dashboard"
+      items:
+        - item_id: "2.1"
+          description: "Implement analysis mapping"
+        - item_id: "3.1"
+          description: "Render pick cards"
+  - req_id: "REQ-004"
+    req_description: "Historical-data experiment warning"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-3"
+      phase_name: "Scan dashboard"
+      items:
+        - item_id: "3.1"
+          description: "Show experimental provenance"
+  - req_id: "REQ-005"
+    req_description: "Durable deduplicated prediction history"
+    priority: "P2"
+    plan_mapping:
+      phase: "Phase-2"
+      phase_name: "Foundational"
+      items:
+        - item_id: "1.1"
+          description: "Create D1 schema"
+        - item_id: "2.1"
+          description: "Implement D1 store"
+  - req_id: "REQ-006"
+    req_description: "Automatic idempotent settlement"
+    priority: "P2"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "Review reliability"
+      items:
+        - item_id: "2.1"
+          description: "Implement deterministic settlement"
+        - item_id: "4.1"
+          description: "Add scores synchronization"
+  - req_id: "REQ-007"
+    req_description: "Correct hit rate and sample size"
+    priority: "P2"
+    plan_mapping:
+      phase: "Phase-4"
+      phase_name: "Review reliability"
+      items:
+        - item_id: "4.1"
+          description: "Display historical hit rate"
+  - req_id: "REQ-008"
+    req_description: "Server-side secrets"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-1"
+      phase_name: "Setup"
+      items:
+        - item_id: "1.1"
+          description: "Configure local and Cloudflare secrets"
+        - item_id: "5.1"
+          description: "Secure deployment"
+  - req_id: "REQ-009"
+    req_description: "Reproducible tests and deployment"
+    priority: "P1"
+    plan_mapping:
+      phase: "Phase-1"
+      phase_name: "Setup"
+      items:
+        - item_id: "1.1"
+          description: "Scaffold Python Worker and D1 migration"
+        - item_id: "5.1"
+          description: "Automate deploy and document prerequisites"
+missing_requirements: []
+orphan_plan_items: []
+validation:
+  passed: true
+  errors: []
+  warnings:
+    - "Remote deployment and Access remain pending Cloudflare account/domain configuration."
