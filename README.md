@@ -83,6 +83,7 @@ límite de solicitudes; la primera carga puede tardar varios segundos.
 ## MVP web privado
 
 El dashboard web responsivo y el Worker de Cloudflare están en [cloudflare/README.md](./cloudflare/README.md).
-Incluye búsqueda de partidos, hasta cinco selecciones experimentales, persistencia D1, historial de resultados
-y tasa de acierto calculada solo sobre selecciones ganadas o perdidas. Antes de desplegar, configura D1,
-los secretos de proveedores y un custom hostname protegido con Cloudflare Access.
+Incluye tabla de posiciones, calendario de Liga MX, detalle de partidos, pronósticos experimentales con
+forma reciente, hasta cinco selecciones de valor, persistencia D1 e historial de resultados. La API key de
+API-Sports permanece en el Worker y no se expone al navegador. Antes de desplegar, configura D1, los secretos
+de proveedores y un custom hostname protegido con Cloudflare Access.

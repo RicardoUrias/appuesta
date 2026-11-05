@@ -39,8 +39,64 @@
         <span class="notice-icon" aria-hidden="true">i</span>
         <div>
           <strong>Modo experimental</strong>
-          <p>El modelo usa estadísticas históricas de 2024 y cuotas de la región US. No son recomendaciones ni garantizan resultados.</p>
+          <p>El pronóstico de partidos usa los últimos 5 resultados disponibles. Los picks de valor usan estadísticas históricas de 2024 y cuotas de la región US. Son estimaciones experimentales, no recomendaciones ni garantías.</p>
         </div>
+      </section>
+
+      <section class="widgets-grid" aria-label="Datos de Liga MX">
+        <article class="widget-card standings-widget" aria-labelledby="standings-title">
+          <div class="section-heading widget-heading">
+            <div>
+              <p class="eyebrow">LIGA MX</p>
+              <h2 id="standings-title">Tabla de posiciones</h2>
+            </div>
+            <span class="section-caption" id="standings-season"></span>
+          </div>
+          <p class="widget-status" id="standings-status" role="status" aria-live="polite">Cargando posiciones...</p>
+          <div class="table-scroll">
+            <table class="standings-table">
+              <thead>
+                <tr>
+                  <th scope="col">#</th>
+                  <th scope="col">Equipo</th>
+                  <th scope="col">PJ</th>
+                  <th scope="col">G</th>
+                  <th scope="col">E</th>
+                  <th scope="col">P</th>
+                  <th scope="col">DG</th>
+                  <th scope="col">Pts</th>
+                </tr>
+              </thead>
+              <tbody id="standings-list"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="widget-card fixtures-widget" aria-labelledby="fixtures-title">
+          <div class="section-heading widget-heading">
+            <div>
+              <p class="eyebrow">CALENDARIO</p>
+              <h2 id="fixtures-title">Próximos partidos</h2>
+            </div>
+            <span class="section-caption">Probabilidades experimentales</span>
+          </div>
+          <p class="widget-status" id="fixtures-status" role="status" aria-live="polite">Cargando partidos...</p>
+          <div class="fixtures-list" id="fixtures-list"></div>
+        </article>
+
+        <article class="widget-card fixture-detail-widget" aria-labelledby="fixture-detail-title">
+          <div class="section-heading widget-heading">
+            <div>
+              <p class="eyebrow">CENTRO DEL PARTIDO</p>
+              <h2 id="fixture-detail-title">Detalle y estadísticas</h2>
+            </div>
+            <span class="section-caption">Selecciona un partido del calendario</span>
+          </div>
+          <div class="fixture-detail" id="fixture-detail" aria-live="polite">
+            <div class="empty-state">El detalle, eventos, estadísticas y alineaciones aparecerán aquí si están disponibles.</div>
+          </div>
+        </article>
+        <p class="widget-source">Datos de calendario, posiciones y resultados recientes: API-Sports.</p>
       </section>
 
       <section class="metrics" aria-label="Resumen histórico">
@@ -90,6 +146,42 @@
         <div class="history-list" id="history-list" aria-live="polite">
           <div class="empty-state">Aún no hay selecciones guardadas.</div>
         </div>
+      </section>
+
+      <section class="section-block glossary-section" aria-labelledby="glossary-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">GUÍA RÁPIDA</p>
+            <h2 id="glossary-title">¿Qué significa cada valor?</h2>
+          </div>
+          <span class="section-caption">Cómo leer los números de cada selección</span>
+        </div>
+        <dl class="glossary-list">
+          <div>
+            <dt>Cuota</dt>
+            <dd>Pago decimal de la casa por cada unidad apostada, incluyendo la unidad original. Por ejemplo, cuota 2.00 devuelve 2 unidades si acierta.</dd>
+          </div>
+          <div>
+            <dt>Prob. implícita</dt>
+            <dd>Probabilidad que representa la cuota: 1 dividido entre la cuota. No descuenta el margen de la casa.</dd>
+          </div>
+          <div>
+            <dt>Prob. ganar / perder</dt>
+            <dd>Estimación del modelo para la selección indicada en la tarjeta. “Perder” significa que esa selección no se cumple; no necesariamente que pierde el equipo nombrado.</dd>
+          </div>
+          <div>
+            <dt>Push</dt>
+            <dd>Probabilidad de que el resultado caiga exactamente en una línea entera de goles. En ese caso la apuesta se devuelve: no gana ni pierde.</dd>
+          </div>
+          <div>
+            <dt>Edge vs cuota (sin push)</dt>
+            <dd>Diferencia entre la probabilidad del modelo, excluyendo el push, y la probabilidad implícita de la cuota. Un edge positivo indica que el modelo estima más probabilidad que la cuota.</dd>
+          </div>
+          <div>
+            <dt>EV modelo / unidad</dt>
+            <dd>Valor esperado neto por cada unidad apostada, según el modelo y la cuota; incluye la posibilidad de push. La tarjeta lo muestra como porcentaje: +57% equivale a +0.57 unidades esperadas por cada 1 apostada, no a una ganancia garantizada.</dd>
+          </div>
+        </dl>
       </section>
 
       <footer class="footer">

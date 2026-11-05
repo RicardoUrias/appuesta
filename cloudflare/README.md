@@ -1,6 +1,6 @@
 # APPuesta web en Cloudflare
 
-El dashboard usa un Python Worker para las llamadas server-side a API-Sports y The Odds API, assets estáticos para la interfaz y D1 para picks e historial. La página muestra explícitamente que las estadísticas son históricas (temporada 2024 por defecto), las cuotas vienen de la región US y el modelo es experimental.
+El dashboard usa un Python Worker para las llamadas server-side a API-Sports y The Odds API, assets estáticos para la interfaz y D1 para picks, historial y caché de respuestas. La tabla, el calendario y el detalle de Liga MX usan componentes propios para mantener la clave API-Sports en el Worker. El pronóstico 1X2 usa forma reciente; el Top 5 de valor sigue usando estadísticas de 2024 y cuotas de la región US. Ambos se identifican como experimentales.
 
 ## Desarrollo local
 
@@ -42,10 +42,14 @@ La configuración desactiva `workers.dev` y las preview URLs. No despliegues en 
 
 - `GET /api/health`: comprueba que el Worker puede consultar D1.
 - `GET /api/dashboard`: resumen, Top 5 de picks pendientes e historial.
+- `GET /api/widgets/dashboard`: posiciones, próximos partidos y pronósticos calculados con forma reciente.
+- `GET /api/widgets/fixtures/{fixture_id}`: marcador, estado, eventos, estadísticas y alineaciones disponibles para el partido.
 - `POST /api/analyze`: consulta cuotas y, dentro del límite configurado, estadísticas históricas en caché; guarda hasta cinco picks nuevos.
 - `POST /api/sync`: sincroniza y liquida picks con resultados finalizados.
 
-El Cron diario ejecuta la misma sincronización de resultados. La tasa de acierto es `ganadas / (ganadas + perdidas)`; pendientes, pushes y anuladas se excluyen y el dashboard muestra el tamaño de muestra. Cada búsqueda limita las estadísticas nuevas a ocho equipos y separa sus solicitudes al ritmo configurado para respetar el plan gratuito.
+El pronóstico usa los últimos cinco partidos completados disponibles en la temporada de calendario actual (por defecto, el año actual) y requiere al menos tres juegos por equipo. Si no alcanza esa muestra, se muestra el partido sin probabilidad. El calendario se refresca cada 15 minutos en D1; la tabla cada hora; los resultados recientes cada seis horas; el detalle cada cinco minutos. Estas cachés evitan llamadas repetidas dentro de cada ventana.
+
+El Cron diario ejecuta la misma sincronización de resultados. La tasa de acierto es `ganadas / (ganadas + perdidas)`; pendientes, pushes y anuladas se excluyen y el dashboard muestra el tamaño de muestra. Cada búsqueda de valor limita las estadísticas históricas nuevas a ocho equipos y separa sus solicitudes al ritmo configurado para respetar el plan gratuito.
 
 ## Pruebas
 

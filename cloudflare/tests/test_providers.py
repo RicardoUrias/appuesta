@@ -6,6 +6,27 @@ from src.providers import ProviderError, Providers
 
 
 class ProviderTests(unittest.IsolatedAsyncioTestCase):
+    async def test_api_sports_widget_requests_use_the_private_key_header(self) -> None:
+        requests: list[tuple[str, dict[str, str] | None]] = []
+
+        async def fetch_json(url: str, headers: dict[str, str] | None) -> Any:
+            requests.append((url, headers))
+            return {"errors": [], "response": []}
+
+        providers = Providers(fetch_json, "sports-secret", "", "", "")
+        self.assertEqual(await providers.get_fixtures(262, 2026, {"next": 10}), [])
+        self.assertEqual(await providers.get_fixtures(262, 2026, {"last": 100}), [])
+        self.assertEqual(await providers.get_standings(262, 2026), [])
+        self.assertEqual(await providers.get_fixture_details(1234), [])
+
+        self.assertEqual(
+            [urlsplit(url).path.rsplit("/", 1)[-1] for url, _ in requests],
+            ["fixtures", "fixtures", "standings", "fixtures"],
+        )
+        self.assertEqual(parse_qs(urlsplit(requests[0][0]).query), {"league": ["262"], "season": ["2026"], "next": ["10"]})
+        self.assertEqual(requests[0][1]["x-apisports-key"], "sports-secret")
+        self.assertEqual(parse_qs(urlsplit(requests[3][0]).query), {"id": ["1234"]})
+
     async def test_odds_and_score_requests_use_configured_sport_and_region(self) -> None:
         requests: list[tuple[str, dict[str, str] | None]] = []
 

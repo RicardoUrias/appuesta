@@ -5,7 +5,8 @@ import json
 import math
 import secrets
 import time
-from typing import Any, Dict, List
+from datetime import datetime, timezone
+from typing import Any, Awaitable, Callable, Dict, List
 from urllib.parse import urlsplit
 
 from js import AbortSignal, Object, Response, fetch
@@ -14,7 +15,14 @@ from workers import WorkerEntrypoint
 
 from app.utils.team_names import find_api_team_id, get_api_teams_by_name
 
-from analysis import build_fixture_candidates, create_fixture, rank_top_picks, settle_pick
+from analysis import (
+    build_fixture_candidates,
+    build_widget_dashboard,
+    create_fixture,
+    normalize_fixture_detail,
+    rank_top_picks,
+    settle_pick,
+)
 from providers import ProviderError, Providers
 from store import D1Store
 
@@ -91,6 +99,75 @@ def _providers(env: Any) -> Providers:
         odds_sport_key=str(getattr(env, "ODDS_SPORT_KEY", "soccer_mexico_ligamx")),
         odds_region=str(getattr(env, "ODDS_REGION", "us")),
     )
+
+
+async def _cached_provider_response(
+    store: D1Store,
+    cache_key: str,
+    max_age_seconds: int,
+    fetch_response: Callable[[], Awaitable[Any]],
+) -> Any:
+    cached = await store.get_cached_json(cache_key, max_age_seconds)
+    if cached is not None:
+        return cached
+    response = await fetch_response()
+    await store.cache_json(cache_key, response)
+    return response
+
+
+async def _widget_dashboard(env: Any) -> Dict[str, Any]:
+    league_id = _integer_env(env, "LEAGUE_ID", 262)
+    season = _integer_env(env, "FIXTURES_SEASON", datetime.now(timezone.utc).year)
+    if league_id <= 0 or season < 2000:
+        raise ProviderError("La liga o la temporada de los widgets no es válida.")
+
+    providers = _providers(env)
+    store = _store(env)
+    upcoming_key = f"api-sports:fixtures:next:{league_id}:{season}"
+    recent_key = f"api-sports:fixtures:last:{league_id}:{season}"
+    standings_key = f"api-sports:standings:{league_id}:{season}"
+    upcoming, recent, standings = await asyncio.gather(
+        _cached_provider_response(
+            store,
+            upcoming_key,
+            900,
+            lambda: providers.get_fixtures(league_id, season, {"next": 10}),
+        ),
+        _cached_provider_response(
+            store,
+            recent_key,
+            21600,
+            lambda: providers.get_fixtures(league_id, season, {"last": 100}),
+        ),
+        _cached_provider_response(
+            store,
+            standings_key,
+            3600,
+            lambda: providers.get_standings(league_id, season),
+        ),
+    )
+    if not all(isinstance(value, list) for value in (upcoming, recent, standings)):
+        raise ProviderError("La caché de widgets contiene datos con un formato inesperado.")
+    return {
+        **build_widget_dashboard(upcoming, recent, standings),
+        "season": season,
+        "form_matches": 5,
+        "minimum_form_matches": 3,
+    }
+
+
+async def _widget_fixture_detail(env: Any, fixture_id: int) -> Dict[str, Any] | None:
+    store = _store(env)
+    cache_key = f"api-sports:fixture:{fixture_id}"
+    fixtures = await _cached_provider_response(
+        store,
+        cache_key,
+        300,
+        lambda: _providers(env).get_fixture_details(fixture_id),
+    )
+    if not isinstance(fixtures, list):
+        raise ProviderError("La caché del detalle de partido tiene un formato inesperado.")
+    return normalize_fixture_detail(fixtures)
 
 
 async def _analyze(env: Any) -> Dict[str, Any]:
@@ -215,6 +292,16 @@ class Default(WorkerEntrypoint):
                 return _json_response({"status": "ok"})
             if path == "/api/dashboard" and method == "GET":
                 return _json_response(await _store(self.env).get_dashboard())
+            if path == "/api/widgets/dashboard" and method == "GET":
+                return _json_response(await _widget_dashboard(self.env))
+            if path.startswith("/api/widgets/fixtures/") and method == "GET":
+                fixture_id_text = path.removeprefix("/api/widgets/fixtures/")
+                if not fixture_id_text.isdecimal() or int(fixture_id_text) <= 0:
+                    return _json_response({"error": "El identificador del partido no es válido."}, 400)
+                detail = await _widget_fixture_detail(self.env, int(fixture_id_text))
+                if detail is None:
+                    return _json_response({"error": "No se encontró el detalle de ese partido."}, 404)
+                return _json_response(detail)
             if path == "/api/analyze" and method == "POST":
                 return _json_response(await _analyze(self.env))
             if path == "/api/sync" and method == "POST":

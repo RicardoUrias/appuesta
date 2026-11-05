@@ -76,12 +76,38 @@ class Providers:
                 raise ProviderError("API-Sports alcanzó el límite de consultas; vuelve a intentar más tarde.")
             raise ProviderError("API-Sports rechazó la consulta; revisa tu clave, temporada y plan.")
         result = payload.get("response")
-        if endpoint == "teams":
-            if not isinstance(result, list) or any(not isinstance(team, dict) for team in result):
-                raise ProviderError("API-Sports devolvió un catálogo de equipos inesperado.")
+        if endpoint in {"teams", "fixtures", "standings"}:
+            if not isinstance(result, list) or any(not isinstance(item, dict) for item in result):
+                raise ProviderError(f"API-Sports devolvió una respuesta inesperada para {endpoint}.")
             return result
         if not isinstance(result, dict):
             raise ProviderError("API-Sports devolvió estadísticas con un formato inesperado.")
+        return result
+
+    async def get_fixtures(
+        self,
+        league_id: int,
+        season: int,
+        filters: Dict[str, str | int],
+    ) -> List[Dict[str, Any]]:
+        result = await self.get_api_sports(
+            "fixtures",
+            {"league": league_id, "season": season, **filters},
+        )
+        if not isinstance(result, list):
+            raise ProviderError("API-Sports devolvió un calendario inesperado.")
+        return result
+
+    async def get_standings(self, league_id: int, season: int) -> List[Dict[str, Any]]:
+        result = await self.get_api_sports("standings", {"league": league_id, "season": season})
+        if not isinstance(result, list):
+            raise ProviderError("API-Sports devolvió una tabla de posiciones inesperada.")
+        return result
+
+    async def get_fixture_details(self, fixture_id: int) -> List[Dict[str, Any]]:
+        result = await self.get_api_sports("fixtures", {"id": fixture_id})
+        if not isinstance(result, list):
+            raise ProviderError("API-Sports devolvió un detalle de partido inesperado.")
         return result
 
     async def get_teams(self, league_id: int, season: int) -> List[Dict[str, Any]]:

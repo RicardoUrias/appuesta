@@ -102,6 +102,30 @@ class D1Store:
             [league_id, season, team_id, json.dumps(stats, separators=(",", ":")), _utc_now()],
         )
 
+    async def get_cached_json(self, cache_key: str, max_age_seconds: int) -> Any | None:
+        row = await self._first(
+            """
+            SELECT payload_json FROM provider_response_cache
+            WHERE cache_key = ? AND julianday(fetched_at) >= julianday('now', ?)
+            """,
+            [cache_key, f"-{max_age_seconds} seconds"],
+        )
+        if row is None:
+            return None
+        return json.loads(row["payload_json"])
+
+    async def cache_json(self, cache_key: str, payload: Any) -> None:
+        await self._run(
+            """
+            INSERT INTO provider_response_cache (cache_key, payload_json, fetched_at)
+            VALUES (?, ?, ?)
+            ON CONFLICT (cache_key) DO UPDATE SET
+                payload_json = excluded.payload_json,
+                fetched_at = excluded.fetched_at
+            """,
+            [cache_key, json.dumps(payload, separators=(",", ":")), _utc_now()],
+        )
+
     async def create_analysis_run(self, run_id: str, season: int, region: str) -> None:
         await self._run(
             """

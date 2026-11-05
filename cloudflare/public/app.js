@@ -18,6 +18,18 @@ const elements = {
   pendingCount: document.querySelector("#pending-count"),
   pickList: document.querySelector("#pick-list"),
   historyList: document.querySelector("#history-list"),
+  standingsSeason: document.querySelector("#standings-season"),
+  standingsStatus: document.querySelector("#standings-status"),
+  standingsList: document.querySelector("#standings-list"),
+  fixturesStatus: document.querySelector("#fixtures-status"),
+  fixturesList: document.querySelector("#fixtures-list"),
+  fixtureDetail: document.querySelector("#fixture-detail"),
+};
+
+const outcomeLabels = {
+  home_win: "Gana local",
+  draw: "Empate",
+  away_win: "Gana visitante",
 };
 
 function percentage(value) {
@@ -109,6 +121,21 @@ function renderPicks(picks = []) {
     impliedLabel.textContent = "Prob. implícita";
     implied.append(impliedValue, impliedLabel);
 
+    const selectedOutcome = pick.market_key === "h2h"
+      ? pick.outcome_key === "home"
+        ? pick.home_team
+        : pick.outcome_key === "away"
+          ? pick.away_team
+          : "Empate"
+      : pick.selection;
+    const losingOutcome = pick.market_key === "h2h"
+      ? pick.outcome_key === "home"
+        ? `No gana ${pick.home_team}`
+        : pick.outcome_key === "away"
+          ? `No gana ${pick.away_team}`
+          : "No hay empate"
+      : `No se cumple “${pick.selection}”`;
+
     const model = document.createElement("div");
     model.className = "pick-number";
     const modelProbability = Number(pick.model_probability);
@@ -116,14 +143,14 @@ function renderPicks(picks = []) {
     const modelValue = document.createElement("strong");
     modelValue.textContent = percentage(modelProbability);
     const modelLabel = document.createElement("span");
-    modelLabel.textContent = "Prob. ganar";
+    modelLabel.textContent = `Gana: ${selectedOutcome}`;
     model.append(modelValue, modelLabel);
     const loss = document.createElement("div");
     loss.className = "pick-number";
     const lossValue = document.createElement("strong");
     lossValue.textContent = percentage(Math.max(0, 1 - modelProbability - pushProbability));
     const lossLabel = document.createElement("span");
-    lossLabel.textContent = "Prob. perder";
+    lossLabel.textContent = `Pierde: ${losingOutcome}`;
     loss.append(lossValue, lossLabel);
     numbers.append(odds, implied, model, loss);
     if (pushProbability > 0) {
@@ -132,7 +159,7 @@ function renderPicks(picks = []) {
       const pushValue = document.createElement("strong");
       pushValue.textContent = percentage(pushProbability);
       const pushLabel = document.createElement("span");
-      pushLabel.textContent = "Push";
+      pushLabel.textContent = "Push (se devuelve)";
       push.append(pushValue, pushLabel);
       numbers.append(push);
     }
@@ -189,6 +216,277 @@ function renderHistory(history = []) {
     row.append(main, odds, status);
     elements.historyList.append(row);
   });
+}
+
+function addTeamLogo(container, url, className = "team-logo") {
+  if (!url) return;
+  const image = document.createElement("img");
+  image.className = className;
+  image.src = url;
+  image.alt = "";
+  image.loading = "lazy";
+  image.addEventListener("error", () => image.remove(), { once: true });
+  container.append(image);
+}
+
+function renderStandings(rows = []) {
+  elements.standingsList.replaceChildren();
+  elements.standingsStatus.dataset.kind = "";
+  if (!rows.length) {
+    elements.standingsStatus.textContent = "La tabla no está disponible para esta temporada.";
+    return;
+  }
+  elements.standingsStatus.textContent = "";
+  rows.forEach((team) => {
+    const row = document.createElement("tr");
+    const values = [
+      team.rank ?? "—",
+      team.team || "Equipo sin nombre",
+      team.played ?? "—",
+      team.won ?? "—",
+      team.drawn ?? "—",
+      team.lost ?? "—",
+      team.goal_difference ?? "—",
+      team.points ?? "—",
+    ];
+    values.forEach((value, index) => {
+      const cell = document.createElement("td");
+      if (index === 1) {
+        const content = document.createElement("span");
+        content.className = "standing-team";
+        addTeamLogo(content, team.logo);
+        const name = document.createElement("span");
+        name.textContent = String(value);
+        content.append(name);
+        cell.append(content);
+      } else {
+        cell.textContent = String(value);
+      }
+      row.append(cell);
+    });
+    elements.standingsList.append(row);
+  });
+}
+
+function createProbabilityRow(label, probability, likely) {
+  const row = document.createElement("div");
+  row.className = `probability-row${likely ? " is-likely" : ""}`;
+  const name = document.createElement("span");
+  name.textContent = label;
+  const track = document.createElement("span");
+  track.className = "probability-track";
+  const fill = document.createElement("span");
+  fill.className = "probability-fill";
+  fill.style.display = "block";
+  fill.style.width = `${Math.max(0, Math.min(100, Number(probability) * 100))}%`;
+  track.append(fill);
+  const percent = document.createElement("strong");
+  percent.textContent = percentage(probability);
+  row.append(name, track, percent);
+  return row;
+}
+
+function renderFixtures(fixtures = [], minimumFormMatches = 3) {
+  elements.fixturesList.replaceChildren();
+  elements.fixturesStatus.dataset.kind = "";
+  if (!fixtures.length) {
+    elements.fixturesStatus.textContent = "No hay partidos próximos disponibles.";
+    return;
+  }
+  elements.fixturesStatus.textContent = "";
+  fixtures.forEach((fixture) => {
+    const card = document.createElement("article");
+    card.className = "fixture-card";
+    const topline = document.createElement("div");
+    topline.className = "fixture-topline";
+    const kickoff = document.createElement("span");
+    kickoff.textContent = dateLabel(fixture.kickoff);
+    const status = document.createElement("span");
+    status.textContent = fixture.status || fixture.round || "Liga MX";
+    topline.append(kickoff, status);
+
+    const teams = document.createElement("div");
+    teams.className = "fixture-team-line";
+    const home = document.createElement("span");
+    home.className = "fixture-team";
+    addTeamLogo(home, fixture.home_team?.logo);
+    const homeName = document.createElement("span");
+    homeName.textContent = fixture.home_team?.name || "Local";
+    home.append(homeName);
+    const score = document.createElement("span");
+    score.className = "fixture-score";
+    score.textContent = fixture.home_goals == null && fixture.away_goals == null
+      ? "vs"
+      : `${fixture.home_goals ?? "—"} - ${fixture.away_goals ?? "—"}`;
+    const away = document.createElement("span");
+    away.className = "fixture-team";
+    addTeamLogo(away, fixture.away_team?.logo);
+    const awayName = document.createElement("span");
+    awayName.textContent = fixture.away_team?.name || "Visitante";
+    away.append(awayName);
+    teams.append(home, score, away);
+
+    const detailButton = document.createElement("button");
+    detailButton.className = "match-detail-button";
+    detailButton.type = "button";
+    detailButton.dataset.fixtureId = String(fixture.id);
+    detailButton.textContent = "Ver detalle";
+    const actions = document.createElement("div");
+    actions.className = "fixture-actions";
+    if (fixture.prediction) {
+      const label = document.createElement("div");
+      label.className = "prediction-label";
+      const mostLikely = document.createElement("strong");
+      mostLikely.textContent = outcomeLabels[fixture.prediction.likely_outcome] || "Pronóstico";
+      const source = document.createElement("span");
+      source.textContent = `Últimos ${fixture.form_sample.home}/${fixture.form_sample.away} partidos`;
+      label.append(mostLikely, source);
+      const probabilities = document.createElement("div");
+      probabilities.className = "probability-list";
+      ["home_win", "draw", "away_win"].forEach((key) => {
+        probabilities.append(
+          createProbabilityRow(
+            outcomeLabels[key],
+            fixture.prediction[key],
+            fixture.prediction.likely_outcome === key,
+          ),
+        );
+      });
+      card.append(topline, teams, label, probabilities);
+    } else {
+      const unavailable = document.createElement("p");
+      unavailable.className = "form-sample";
+      unavailable.textContent = `Pronóstico no disponible: se requieren al menos ${minimumFormMatches} resultados recientes por equipo.`;
+      card.append(topline, teams, unavailable);
+    }
+    actions.append(detailButton);
+    card.append(actions);
+    elements.fixturesList.append(card);
+  });
+}
+
+function detailBlock(title, rows) {
+  const block = document.createElement("section");
+  block.className = "detail-data-block";
+  const heading = document.createElement("h3");
+  heading.textContent = title;
+  block.append(heading);
+  if (!rows.length) {
+    const empty = document.createElement("p");
+    empty.className = "form-sample";
+    empty.textContent = "Aún no disponible.";
+    block.append(empty);
+    return block;
+  }
+  rows.forEach(([label, value]) => {
+    const row = document.createElement("div");
+    row.className = "detail-data-row";
+    const name = document.createElement("span");
+    name.textContent = String(label);
+    const content = document.createElement("strong");
+    content.textContent = String(value ?? "—");
+    row.append(name, content);
+    block.append(row);
+  });
+  return block;
+}
+
+function renderFixtureDetail(detail) {
+  elements.fixtureDetail.replaceChildren();
+  const header = document.createElement("div");
+  header.className = "fixture-detail-teams";
+  const home = document.createElement("span");
+  home.className = "fixture-detail-team";
+  addTeamLogo(home, detail.home_logo, "team-logo");
+  const homeName = document.createElement("span");
+  homeName.textContent = detail.home_team || "Local";
+  home.append(homeName);
+  const score = document.createElement("span");
+  score.className = "fixture-detail-score";
+  score.textContent = detail.home_goals == null && detail.away_goals == null
+    ? "vs"
+    : `${detail.home_goals ?? "—"} - ${detail.away_goals ?? "—"}`;
+  const away = document.createElement("span");
+  away.className = "fixture-detail-team";
+  addTeamLogo(away, detail.away_logo, "team-logo");
+  const awayName = document.createElement("span");
+  awayName.textContent = detail.away_team || "Visitante";
+  away.append(awayName);
+  header.append(home, score, away);
+
+  const meta = document.createElement("div");
+  meta.className = "detail-meta";
+  [dateLabel(detail.kickoff), detail.status, detail.venue, detail.city, detail.referee]
+    .filter(Boolean)
+    .forEach((value) => {
+      const item = document.createElement("span");
+      item.textContent = String(value);
+      meta.append(item);
+    });
+
+  const grid = document.createElement("div");
+  grid.className = "detail-data-grid";
+  const eventRows = (detail.events || []).map((event) => [
+    `${event.time?.elapsed ?? ""}' ${event.team?.name || ""}`,
+    [event.player?.name, event.detail].filter(Boolean).join(" · ") || event.type || "Evento",
+  ]);
+  grid.append(detailBlock("Eventos", eventRows));
+
+  const statsRows = (detail.statistics || []).flatMap((teamStats) => {
+    const teamName = teamStats.team?.name || "Equipo";
+    return (teamStats.statistics || []).map((stat) => [
+      `${teamName} · ${stat.type || "Estadística"}`,
+      stat.value,
+    ]);
+  });
+  grid.append(detailBlock("Estadísticas", statsRows));
+
+  const lineupRows = (detail.lineups || []).map((lineup) => [
+    lineup.team?.name || "Equipo",
+    [
+      lineup.formation ? `Formación ${lineup.formation}` : "",
+      lineup.startXI?.length ? `${lineup.startXI.length} titulares` : "",
+    ].filter(Boolean).join(" · ") || "Alineación pendiente",
+  ]);
+  grid.append(detailBlock("Alineaciones", lineupRows));
+  elements.fixtureDetail.append(header, meta, grid);
+}
+
+async function loadFootballWidgets() {
+  elements.standingsStatus.textContent = "Cargando posiciones...";
+  elements.standingsStatus.dataset.kind = "";
+  elements.fixturesStatus.textContent = "Cargando partidos...";
+  elements.fixturesStatus.dataset.kind = "";
+  try {
+    const result = await requestJson("/api/widgets/dashboard");
+    elements.standingsSeason.textContent = `Temporada ${result.season}`;
+    renderStandings(result.standings);
+    renderFixtures(result.fixtures, result.minimum_form_matches);
+  } catch (error) {
+    const message = error.message || "No se pudieron cargar los datos de Liga MX.";
+    elements.standingsStatus.textContent = message;
+    elements.standingsStatus.dataset.kind = "error";
+    elements.fixturesStatus.textContent = message;
+    elements.fixturesStatus.dataset.kind = "error";
+  }
+}
+
+async function loadFixtureDetail(button) {
+  const fixtureId = button.dataset.fixtureId;
+  button.disabled = true;
+  button.textContent = "Cargando...";
+  elements.fixtureDetail.replaceChildren(createEmptyState("Consultando detalle del partido..."));
+  try {
+    const detail = await requestJson(`/api/widgets/fixtures/${encodeURIComponent(fixtureId)}`);
+    renderFixtureDetail(detail);
+  } catch (error) {
+    elements.fixtureDetail.replaceChildren(
+      createEmptyState(error.message || "No se pudo cargar el detalle del partido."),
+    );
+  } finally {
+    button.disabled = false;
+    button.textContent = "Ver detalle";
+  }
 }
 
 async function requestJson(path, options = {}) {
@@ -261,7 +559,12 @@ async function syncResults() {
 
 elements.scanButton.addEventListener("click", scanMatches);
 elements.syncButton.addEventListener("click", syncResults);
+elements.fixturesList.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-fixture-id]");
+  if (button && elements.fixturesList.contains(button)) loadFixtureDetail(button);
+});
 
 refreshDashboard().catch((error) => {
   setStatus(error.message || "No se pudo cargar el historial.", "error");
 });
+loadFootballWidgets();

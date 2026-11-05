@@ -68,8 +68,9 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
         self.connection = sqlite3.connect(":memory:")
         self.connection.row_factory = sqlite3.Row
-        migration_path = Path(__file__).parents[1] / "migrations" / "0001_initial.sql"
-        self.connection.executescript(migration_path.read_text(encoding="utf-8"))
+        migration_dir = Path(__file__).parents[1] / "migrations"
+        for migration_path in sorted(migration_dir.glob("*.sql")):
+            self.connection.executescript(migration_path.read_text(encoding="utf-8"))
         self.store = D1Store(FakeDatabase(self.connection), lambda value: value)
         await self.store.create_analysis_run("run-1", 2024, "us")
 
@@ -145,6 +146,18 @@ class StoreTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(await self.store.get_cached_teams(262, 2024), teams)
         self.assertEqual(await self.store.get_cached_team_stats(262, 2024, 10), stats)
+
+    async def test_provider_response_cache_round_trip_and_expiration(self) -> None:
+        payload = [{"fixture": {"id": 42}}]
+        await self.store.cache_json("fixtures:2026", payload)
+
+        self.assertEqual(await self.store.get_cached_json("fixtures:2026", 900), payload)
+        self.connection.execute(
+            "UPDATE provider_response_cache SET fetched_at = '2020-01-01T00:00:00+00:00' WHERE cache_key = ?",
+            ("fixtures:2026",),
+        )
+        self.connection.commit()
+        self.assertIsNone(await self.store.get_cached_json("fixtures:2026", 900))
 
     async def test_dashboard_top_picks_shows_only_one_selection_per_event(self) -> None:
         first = make_pick("same-event")

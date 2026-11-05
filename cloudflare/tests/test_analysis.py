@@ -1,8 +1,10 @@
 import unittest
 
 from src.analysis import (
+    build_widget_dashboard,
     build_fixture_candidates,
     create_fixture,
+    normalize_fixture_detail,
     rank_top_picks,
     settle_pick,
 )
@@ -50,6 +52,95 @@ def team_stats(home: bool) -> dict:
 
 
 class AnalysisTests(unittest.TestCase):
+    def test_widget_dashboard_estimates_winner_from_recent_completed_fixtures(self) -> None:
+        upcoming = [{
+            "fixture": {"id": 99, "date": "2026-11-20T20:00:00+00:00", "status": {"short": "NS"}},
+            "teams": {
+                "home": {"id": 10, "name": "America", "logo": "https://example.test/a.png"},
+                "away": {"id": 20, "name": "Chivas", "logo": "https://example.test/c.png"},
+            },
+            "goals": {"home": None, "away": None},
+            "league": {"round": "Apertura - 15"},
+        }]
+        recent = []
+        for timestamp, home_goals, away_goals in (
+            (100, 2, 0),
+            (200, 1, 0),
+            (300, 3, 1),
+        ):
+            recent.append({
+                "fixture": {"timestamp": timestamp, "status": {"short": "FT"}},
+                "teams": {"home": {"id": 10}, "away": {"id": 20}},
+                "goals": {"home": home_goals, "away": away_goals},
+            })
+        standings = [{
+            "league": {
+                "standings": [[{
+                    "rank": 1,
+                    "team": {"name": "America", "logo": "https://example.test/a.png"},
+                    "all": {
+                        "played": 10,
+                        "win": 8,
+                        "draw": 1,
+                        "lose": 1,
+                        "goals": {"for": 20, "against": 8},
+                    },
+                    "goalsDiff": 12,
+                    "points": 25,
+                    "form": "WWDWW",
+                }]],
+            },
+        }]
+
+        result = build_widget_dashboard(upcoming, recent, standings)
+
+        fixture = result["fixtures"][0]
+        self.assertEqual(fixture["form_sample"], {"home": 3, "away": 3})
+        self.assertEqual(fixture["prediction"]["likely_outcome"], "home_win")
+        self.assertAlmostEqual(
+            sum(fixture["prediction"][key] for key in ("home_win", "draw", "away_win")),
+            1.0,
+        )
+        self.assertEqual(result["standings"][0]["points"], 25)
+
+    def test_widget_dashboard_withholds_prediction_without_minimum_recent_form(self) -> None:
+        fixture = {
+            "fixture": {"id": 1, "date": "2026-11-20T20:00:00Z"},
+            "teams": {"home": {"id": 10, "name": "America"}, "away": {"id": 20, "name": "Chivas"}},
+            "goals": {"home": None, "away": None},
+        }
+        recent = [{
+            "fixture": {"timestamp": 1, "status": {"short": "FT"}},
+            "teams": {"home": {"id": 10}, "away": {"id": 20}},
+            "goals": {"home": 1, "away": 0},
+        }]
+
+        result = build_widget_dashboard([fixture], recent, [])
+
+        self.assertIsNone(result["fixtures"][0]["prediction"])
+        self.assertEqual(result["fixtures"][0]["form_sample"], {"home": 1, "away": 1})
+
+    def test_normalize_fixture_detail_preserves_available_match_data(self) -> None:
+        detail = normalize_fixture_detail([{
+            "fixture": {
+                "id": 123,
+                "date": "2026-11-20T20:00:00Z",
+                "status": {"long": "Not Started", "elapsed": None},
+                "venue": {"name": "Estadio", "city": "CDMX"},
+                "referee": None,
+            },
+            "teams": {"home": {"name": "America"}, "away": {"name": "Chivas"}},
+            "goals": {"home": None, "away": None},
+            "events": [],
+            "statistics": [],
+            "lineups": [],
+        }])
+
+        self.assertEqual(detail["id"], 123)
+        self.assertEqual(detail["venue"], "Estadio")
+        self.assertEqual(detail["home_team"], "America")
+        self.assertEqual(detail["events"], [])
+
     def test_create_fixture_requires_historical_stats_for_both_teams(self) -> None:
         self.assertIsNone(create_fixture(event(), 10, 20, {10: team_stats(True)}))
         fixture = create_fixture(
